@@ -1,0 +1,622 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Retail Support Agents | Interactive code atlas</title>
+  <style>
+    :root { --bg:#0b1019; --panel:#121b29; --panel2:#172234; --line:#2a3a50; --text:#ecf2fa; --muted:#a8b7cc; --mint:#6ce4bd; --blue:#86b8ff; --purple:#c3a6ff; --amber:#f6cb7e; --radius:18px; }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; background:radial-gradient(ellipse at 85% 0%,#16313a 0,transparent 42%),var(--bg); color:var(--text); font:15px/1.6 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    button,select { font:inherit; }
+    button,a,select { -webkit-tap-highlight-color:transparent; }
+    button { cursor:pointer; }
+    button:disabled { cursor:default; opacity:.4; }
+    a { color:var(--blue); text-underline-offset:4px; overflow-wrap:anywhere; }
+    button:focus-visible,a:focus-visible,select:focus-visible,summary:focus-visible { outline:3px solid var(--mint); outline-offset:4px; }
+    .skip { position:absolute; left:20px; top:-80px; padding:10px; background:var(--panel); z-index:10; }
+    .skip:focus { top:10px; }
+    .shell { max-width:1420px; margin:auto; padding:32px 40px 64px; }
+    .topline,.row,.section-head,.controls,.legend,.chips { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+    .topline { justify-content:space-between; color:var(--muted); font-size:12px; letter-spacing:.08em; text-transform:uppercase; }
+    .brand { display:flex; gap:10px; align-items:center; font-weight:750; color:var(--text); }
+    .brand-mark { width:27px; height:27px; border:1px solid var(--mint); border-radius:8px; display:grid; place-items:center; color:var(--mint); }
+    .pill { border:1px solid var(--line); border-radius:99px; padding:4px 11px; font-size:12px; color:var(--muted); background:#101a26; }
+    .pill.safe { color:var(--mint); border-color:#315b50; }
+    header { padding:49px 0 30px; }
+    .eyebrow { color:var(--mint); font-size:11px; font-weight:750; letter-spacing:.17em; text-transform:uppercase; margin:0 0 10px; }
+    h1 { font-size:clamp(34px,4.7vw,62px); line-height:1.08; letter-spacing:-.045em; margin:0 0 20px; max-width:920px; }
+    h1 span { color:var(--mint); }
+    .lead { max-width:850px; color:var(--muted); font-size:17px; margin:0; }
+    h2 { font-size:25px; letter-spacing:-.025em; line-height:1.25; margin:0; }
+    h3 { font-size:17px; line-height:1.35; margin:0 0 10px; }
+    p { margin:0 0 14px; }
+    .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin:26px 0 32px; }
+    .stat { border:1px solid var(--line); border-radius:14px; padding:17px 20px; background:#111b26c9; }
+    .stat strong { font-size:23px; display:block; line-height:1.25; }
+    .stat span { color:var(--muted); font-size:12px; }
+    .tabs { display:flex; gap:7px; border-bottom:1px solid var(--line); margin-bottom:27px; overflow-x:auto; padding:0 0 13px; }
+    .tab,.btn { border:1px solid var(--line); color:var(--muted); background:var(--panel); border-radius:9px; padding:9px 14px; white-space:nowrap; }
+    .tab[aria-selected="true"] { color:var(--bg); background:var(--mint); border-color:var(--mint); font-weight:750; }
+    .btn:hover:not(:disabled),.tab:hover:not([aria-selected="true"]) { border-color:var(--blue); color:var(--text); }
+    .btn.primary { color:var(--mint); border-color:#3e7162; background:#18332e; }
+    .section-head { justify-content:space-between; align-items:flex-start; margin-bottom:21px; }
+    .section-head p { color:var(--muted); margin:8px 0 0; max-width:830px; }
+    .workspace { display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:20px; align-items:start; }
+    .panel { border:1px solid var(--line); border-radius:var(--radius); background:linear-gradient(140deg,#152031ee,#111a27ee); overflow:hidden; }
+    .map-header { padding:20px 23px 15px; border-bottom:1px solid var(--line); }
+    .legend { font-size:11px; color:var(--muted); gap:16px; }
+    .legend span { display:inline-flex; align-items:center; gap:6px; }
+    .dot { width:8px; height:8px; display:inline-block; border-radius:3px; background:var(--blue); }
+    .dot.agent { background:var(--purple); }
+    .dot.storage { background:var(--amber); }
+    .dot.human { background:var(--mint); }
+    .map { padding:24px; min-height:350px; }
+    .lane-label { color:var(--muted); font-size:10px; letter-spacing:.14em; text-transform:uppercase; margin:0 0 11px; }
+    .node-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:15px; }
+    .node { position:relative; text-align:left; color:var(--text); width:100%; min-width:0; border:1px solid var(--line); border-top:3px solid var(--blue); border-radius:12px; padding:15px 14px; background:#152133; transition:background .15s,border-color .15s,transform .15s; }
+    .node:hover { transform:translateY(-2px); background:#1b2b40; }
+    .node[data-kind="agent"] { border-top-color:var(--purple); }
+    .node[data-kind="storage"] { border-top-color:var(--amber); }
+    .node[data-kind="human"] { border-top-color:var(--mint); }
+    .node .number { color:var(--muted); font:11px ui-monospace,monospace; display:flex; justify-content:space-between; gap:8px; margin-bottom:9px; }
+    .node strong { display:block; font-size:14px; line-height:1.4; overflow-wrap:anywhere; }
+    .node small { display:block; color:var(--muted); font-size:11px; line-height:1.5; margin-top:5px; }
+    .node.selected { outline:2px solid var(--mint); outline-offset:3px; background:#1b3439; }
+    .node.on-route { box-shadow:inset 0 0 0 1px #5c7d90; }
+    .node.visited .number { color:var(--mint); }
+    .node.current { background:#234249; border-color:var(--mint); }
+    .connector { color:#82a8bb; text-align:center; font-size:12px; padding:13px 0; }
+    .group-hub { max-width:310px; margin:0 auto; }
+    .group-zone { border:1px dashed #62527e; border-radius:14px; padding:17px; background:#251f351f; }
+    .group-zone .node-grid { gap:10px; }
+    .group-zone .node { padding:13px 10px; }
+    .branch-label { color:var(--amber); font-size:12px; margin:16px 0 10px; }
+    .graph-scroll { overflow-x:auto; padding:6px; }
+    .connected-graph { display:block; width:100%; min-width:740px; height:auto; }
+    .connected-graph .node { height:100%; min-height:0; }
+    .graph-edge path { fill:none; stroke:#70869f; stroke-width:2; }
+    .graph-edge.service path { stroke-dasharray:6 5; }
+    .graph-edge.active path { stroke:var(--mint); stroke-width:3; }
+    .graph-edge text { fill:var(--muted); font:12px system-ui,sans-serif; paint-order:stroke; stroke:#121b29; stroke-width:5px; stroke-linejoin:round; }
+    .graph-edge.active text { fill:var(--mint); }
+    .graph-note { color:var(--muted); font-size:12px; margin:0 0 12px; }
+    .aside { padding:24px; position:sticky; top:20px; }
+    .detail-type { text-transform:uppercase; letter-spacing:.12em; color:var(--mint); font-size:10px; font-weight:750; }
+    .aside h3 { font-size:23px; margin:10px 0 14px; overflow-wrap:anywhere; }
+    .aside p { font-size:13px; color:var(--muted); }
+    .aside dl { font-size:12px; margin:20px 0; }
+    .aside dt { color:var(--text); font-weight:700; margin-top:13px; }
+    .aside dd { margin:4px 0 0; color:var(--muted); overflow-wrap:anywhere; }
+    code { color:#d5c6ff; font:12px/1.65 ui-monospace,SFMono-Regular,Consolas,monospace; overflow-wrap:anywhere; }
+    pre { margin:14px 0 0; border:1px solid var(--line); border-radius:10px; background:#0b1320; padding:14px; white-space:pre-wrap; overflow-wrap:anywhere; font-size:12px; }
+    .callout { padding:16px 19px; border-left:3px solid var(--amber); background:#322b1f55; border-radius:0 9px 9px 0; color:#e4d7bf; font-size:13px; margin:20px 0 0; }
+    .player { padding:21px 23px; border-top:1px solid var(--line); background:#0e1723; }
+    label { color:var(--muted); font-size:12px; display:block; margin-bottom:7px; }
+    select { width:100%; padding:11px 35px 11px 12px; color:var(--text); background:var(--panel2); border:1px solid var(--line); border-radius:9px; }
+    .controls { margin-top:15px; gap:8px; }
+    .progress { flex:1; min-width:70px; height:5px; border-radius:8px; background:var(--line); overflow:hidden; }
+    .progress span { display:block; height:100%; background:var(--mint); transition:width .2s; }
+    .step-count { font:11px ui-monospace,monospace; color:var(--muted); }
+    .narration { padding:17px 0 0; min-height:101px; }
+    .narration strong { font-size:14px; }
+    .narration p { font-size:13px; color:var(--muted); margin:6px 0 0; }
+    .path { font:11px/1.9 ui-monospace,monospace; color:var(--muted); margin-top:10px; }
+    .path b { color:var(--mint); }
+    .below { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-top:20px; }
+    .info { padding:23px; }
+    .info p,.info li { font-size:13px; color:var(--muted); }
+    ul { padding-left:19px; margin:10px 0 0; }
+    li+li { margin-top:7px; }
+    .compare { margin-top:32px; }
+    .table-wrap { overflow:auto; margin-top:17px; }
+    table { border-collapse:collapse; width:100%; min-width:620px; text-align:left; font-size:13px; }
+    th,td { border-bottom:1px solid var(--line); padding:14px 16px; vertical-align:top; }
+    th { color:var(--mint); font-size:11px; text-transform:uppercase; letter-spacing:.07em; background:#142330; }
+    td { color:var(--muted); }
+    td:first-child { color:var(--text); }
+    details { border-top:1px solid var(--line); padding:17px 0; }
+    summary { cursor:pointer; font-size:14px; font-weight:650; }
+    details p { margin:12px 0 0; color:var(--muted); font-size:13px; }
+    .reading { margin-top:30px; }
+    .reading-links { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:17px; }
+    .reading-links a { display:block; border:1px solid var(--line); background:var(--panel); border-radius:12px; padding:15px; font-size:13px; }
+    .reading-links small { display:block; color:var(--muted); margin-top:5px; }
+    footer { display:flex; justify-content:space-between; flex-wrap:wrap; gap:14px; color:var(--muted); font-size:11px; margin-top:35px; padding-top:20px; border-top:1px solid var(--line); }
+    .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+    @media(max-width:1100px) { .workspace { grid-template-columns:minmax(0,1fr) 290px; } .shell { padding:25px; } .map { padding:20px; } }
+    @media(max-width:850px) { .workspace { grid-template-columns:1fr; } .aside { position:static; } .stats { grid-template-columns:repeat(2,1fr); } .below { grid-template-columns:1fr; } .reading-links { grid-template-columns:repeat(2,1fr); } }
+    @media(max-width:520px) { .shell { padding:20px 16px 35px; } header { padding-top:32px; } .node-grid { grid-template-columns:1fr; } .group-zone .node-grid { grid-template-columns:1fr; } .map { padding:18px; } .reading-links { grid-template-columns:1fr; } .topline { font-size:10px; } .stat { padding:15px; } .controls .btn { padding:8px 10px; } }
+    @media(prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } *,*::before,*::after { transition:none!important; } }
+    @media print { body { background:white; color:black; } .shell { max-width:none; padding:0; } .tabs,.controls,.skip { display:none; } .panel,.stat { background:white; color:black; break-inside:avoid; } .workspace { grid-template-columns:1fr; } .aside { position:static; } p,td,small,.lead,.info p,.aside p { color:#333!important; } }
+  </style>
+</head>
+<body>
+  <a class="skip" href="#explorer">Skip to interactive explorer</a>
+  <div class="shell">
+    <div class="topline">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">P</span> Parcel &amp; Pine / code atlas</div>
+      <span class="pill safe">Synthetic demo &middot; no live API calls</span>
+    </div>
+    <header>
+      <p class="eyebrow">Architecture, made explorable</p>
+      <h1>Two desks.<br>Two ways to <span>orchestrate.</span></h1>
+      <p class="lead">Follow a retail support case from the browser to the worker, through agent collaboration or a directed graph, and across the human approval boundary.</p>
+      <div class="stats">
+        <div class="stat"><strong>2 patterns</strong><span>Dynamic group chat / explicit graph</span></div>
+        <div class="stat"><strong>3 specialists</strong><span>Delivery agents + coordinator + writer</span></div>
+        <div class="stat"><strong>1 agent site</strong><span>Returns graph: proposal generation</span></div>
+        <div class="stat"><strong>Human-gated</strong><span>Every simulated refund / replacement</span></div>
+      </div>
+    </header>
+    <main id="explorer">
+      <div class="tabs" role="tablist" aria-label="Code flow">
+        <button class="tab" id="tab-overview" role="tab" aria-selected="true" aria-controls="flow-panel" data-view="overview">01 / System map</button>
+        <button class="tab" id="tab-delivery" role="tab" aria-selected="false" aria-controls="flow-panel" tabindex="-1" data-view="delivery">02 / Delivery group chat</button>
+        <button class="tab" id="tab-returns" role="tab" aria-selected="false" aria-controls="flow-panel" tabindex="-1" data-view="returns">03 / Returns graph</button>
+        <button class="tab" id="tab-approval" role="tab" aria-selected="false" aria-controls="flow-panel" tabindex="-1" data-view="approval">04 / Approval &amp; execution</button>
+      </div>
+      <section id="flow-panel" role="tabpanel" aria-labelledby="tab-overview">
+        <div class="section-head">
+          <div><p class="eyebrow" id="view-kicker"></p><h2 id="view-title"></h2><p id="view-description"></p></div>
+          <span class="pill">Click any card to inspect its code</span>
+        </div>
+        <div class="workspace">
+          <div class="panel">
+            <div class="map-header">
+              <div class="legend" aria-label="Node types">
+                <span><i class="dot" aria-hidden="true"></i> Application / executor</span>
+                <span><i class="dot agent" aria-hidden="true"></i> Agent / agent orchestration</span>
+                <span><i class="dot storage" aria-hidden="true"></i> Durable state</span>
+                <span><i class="dot human" aria-hidden="true"></i> Human decision</span>
+              </div>
+            </div>
+            <div class="map" id="map"></div>
+            <div class="player">
+              <label for="scenario">Explore a path <span aria-hidden="true">&mdash;</span> illustrative walkthrough, not a live execution</label>
+              <select id="scenario"></select>
+              <div class="controls">
+                <button class="btn" id="previous" aria-label="Previous step">Back</button>
+                <button class="btn primary" id="play">Play path</button>
+                <button class="btn" id="next" aria-label="Next step">Next</button>
+                <button class="btn" id="reset">Reset</button>
+                <div class="progress" role="progressbar" aria-label="Walkthrough progress" aria-valuemin="1" aria-valuemax="1" aria-valuenow="1"><span id="progress-fill"></span></div>
+                <span class="step-count" id="step-count"></span>
+              </div>
+              <div class="narration" aria-live="polite" aria-atomic="true"><strong id="step-title"></strong><p id="step-text"></p></div>
+              <div class="path" id="path" aria-label="Scenario route"></div>
+            </div>
+          </div>
+          <aside class="panel aside" aria-label="Selected node details" id="details" aria-live="polite"></aside>
+        </div>
+        <div class="below">
+          <article class="panel info"><h3 id="note-title"></h3><div id="note-body"></div></article>
+          <article class="panel info"><h3 id="code-title"></h3><pre><code id="code"></code></pre></article>
+        </div>
+      </section>
+      <section class="compare">
+        <p class="eyebrow">The important distinction</p><h2>Agents reason. Application code authorizes.</h2>
+        <div class="panel table-wrap">
+          <table>
+            <caption class="sr-only">Comparison of delivery group chat, returns graph and approved continuation</caption>
+            <thead><tr><th>Concern</th><th>Delivery</th><th>Returns</th><th>Approved continuation</th></tr></thead>
+            <tbody>
+              <tr><td>Who selects the next step?</td><td>Coordinator selects specialists dynamically.</td><td>Python edge conditions route shared state.</td><td>Fixed approval &rarr; execute &rarr; verify graph.</td></tr>
+              <tr><td>Where are agents invoked?</td><td>Group workflow, then a separate ResolutionWriter.</td><td>ResolutionWriter inside the proposal executor.</td><td>No agents or model calls.</td></tr>
+              <tr><td>Where does evidence come from?</td><td>Scoped order/tracking/policy tools; retrieval precedes the group.</td><td>Concurrent order lookup and hybrid policy retrieval.</td><td>Persisted proposal plus fresh eligibility checks.</td></tr>
+              <tr><td>Who calculates money?</td><td colspan="3">Deterministic application logic: unit price &times; requested quantity for refunds; replacement amount is zero.</td></tr>
+              <tr><td>What survives a restart?</td><td colspan="3">Requests, events, proposals, decisions and jobs in PostgreSQL. Active agent conversations are not durably resumed.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <section class="panel info" style="margin-top:24px" aria-label="Implementation nuances">
+        <h3>Under the hood: details worth knowing</h3>
+        <details><summary>The displayed graph is a business map, not a literal executor inventory</summary><p>The UI shows 12 business nodes. In the returns backend, identify is an event emitted by intake, not a separate executor. Approval persistence is a service call; approval, execute and verify run in a second workflow. Confirmation is an application event. The interactive returns map above reflects actual investigation executors.</p></details>
+        <details><summary>The coordinator is not the final structured assessment writer</summary><p>Delivery captures intermediate specialist text, concatenated by author rather than retained as a chronological turn list. A separate ResolutionWriter receives that discussion plus request, order and policies. The final agent_message labeled IncidentCoordinator contains the writer's assessment summary; the coordinator's final text is not directly used as the persisted business assessment.</p></details>
+        <details><summary>Specialists share tools; prompts establish their roles</summary><p>All three specialists receive order_facts, tracking_facts and policy_evidence. Tool activity actor labels are hardcoded inside those tool functions, so the activity label alone does not establish which specialist called a shared tool. The coordinator is instructed to involve everyone, but this is not enforced by an application-side participation condition.</p></details>
+        <details><summary>Model configuration and finite budgets</summary><p>model_client() creates an AsyncOpenAI-backed OpenAIChatClient shared by agents within the investigation. Agents set store=false and use framework-managed local conversation history. Defaults are 12 participant turns, 2 transient provider retries, 120 seconds active work, a renewable 180-second job lease, and 2 worker slots. A model call or agent run may involve multiple provider requests; one proposal invocation is not a promise of one HTTP call.</p></details>
+        <details><summary>Clarification, failure and cancellation are explicit lifecycle operations</summary><p>Customer information and retry create linked runs using stored inputs, not a restored agent conversation. Expired investigation jobs are interrupted; eligible unfinished execution jobs can be requeued. Cancellation stops pending work but cannot undo a committed simulated resolution. Human waiting occurs between jobs and does not hold an active investigation timeout open.</p></details>
+        <details><summary>The assessment contract is deliberately small</summary><pre><code>{
+  outcome: "propose" | "clarify" | "escalate" | "inform",
+  summary: string,
+  question: string,
+  action: "refund" | "replacement",
+  citations: string[]
+}</code></pre><p>complete_assessment() rejects unavailable citations. A proposal additionally requires nonempty citations including its authorization policy, current eligibility, and later human approval. Money and quantities do not come from model-generated assessment fields.</p></details>
+      </section>
+      <section class="reading">
+        <p class="eyebrow">Continue in the source</p><h2>Your reading route</h2>
+        <div class="reading-links">
+          <a href="a-agents-sample/backend/src/support_demo/agents.py">1. Agent construction &amp; invocation<small>agents.py &middot; model client, group builder, writer</small></a>
+          <a href="a-agents-sample/backend/src/support_demo/workflows.py">2. Routing &amp; directed graphs<small>workflows.py &middot; investigation and action graphs</small></a>
+          <a href="a-agents-sample/backend/src/support_demo/worker.py">3. Background execution<small>worker.py &middot; claims, dispatch, heartbeat, recovery</small></a>
+          <a href="a-agents-sample/backend/src/support_demo/services.py">4. Durable business lifecycle<small>services.py &middot; runs, proposals, approval, execution</small></a>
+          <a href="a-agents-sample/backend/src/support_demo/domain.py">5. Deterministic guardrails<small>domain.py &middot; ownership, windows, quantities, money</small></a>
+          <a href="a-agents-sample/frontend/src/useActivity.ts">6. Activity delivery<small>useActivity.ts &middot; SSE, replay and deduplication</small></a>
+        </div>
+      </section>
+    </main>
+    <footer><span>Source-grounded architecture walkthrough &middot; static inspection, not runtime telemetry.</span><span>Self-contained &middot; works offline &middot; no external assets</span></footer>
+    <noscript><p>This walkthrough needs JavaScript for the interactive diagrams. The comparison, implementation notes and source links remain available without it.</p></noscript>
+  </div>
+  <script>
+    'use strict';
+    const root = 'a-agents-sample/';
+    const backend = 'backend/src/support_demo/';
+    const n = (title, subtitle, kind, file, line, description, input, output, call) =>
+      ({ title, subtitle, kind, file, line, description, input, output, call });
+    const nodes = {
+      browser:n('React request form','Customer + order + desk','code','frontend/src/App.tsx',172,'DeskPage submits the selected customer, desk and case inputs. This is a support run, not a direct chat-completions request.','RunInput form values','POST /api/runs','mutate("/runs", { ...input, customer_id, desk })'),
+      api:n('FastAPI intake','Validate and enqueue','code',backend+'main.py',125,'start_run() delegates to create_run(). insert_run() validates customer/order/item relationships and stores the request and a job atomically. No agents execute in this HTTP handler.','Validated RunInput','Persisted run returned to browser','start_run() -> create_run() -> insert_run()'),
+      database:n('PostgreSQL','Durable run + job + events','storage',backend+'services.py',137,'A Run stores inputs, case identity and trace context. A Job of kind investigate is created, with an initial queued activity event. PostgreSQL also holds orders, policies, approvals and simulated resolutions.','Request + current trace context','Queued investigation and replayable activity','session.add(Job(run_id=run.id, kind="investigate"))'),
+      worker:n('Background worker','Claim, lease, dispatch','code',backend+'worker.py',103,'claim() uses row locking with skip_locked. process() attaches trace/accounting context, starts a task and heartbeat, and enforces the active-work timeout.','Claimed job + run ID','investigate() or execute_approved()','execute_approved(run_id) if kind == "execute" else investigate(run_id)'),
+      dispatch:n('Desk dispatch','Delivery or returns?','code',backend+'workflows.py',254,'investigate() loads the stored request and opens the model client. Returns invokes the directed graph. Delivery performs prechecks/retrieval before invoking its group.','Run.request','Desk-specific orchestration','if request["desk"] == "returns": ... else: ...'),
+      activity:n('Durable SSE activity','Events back to the UI','storage',backend+'main.py',146,'emit() persists application events. The SSE endpoint reads ordered events after a cursor; useActivity() caches and deduplicates them. Browser disconnects do not cancel the worker.','Event rows: node, evidence, tool, speaker_selected, agent_delta, status','Timeline, graph states and run-detail refresh','GET /api/runs/{run_id}/events?after={cursor}'),
+      checks:n('Prechecks + retrieval','Before the group starts','code',backend+'workflows.py',254,'Check order/item, retrieve order and policies concurrently, and require explicit delivery-location confirmation for a delivered-but-missing order. These branches can end the run before group invocation.','Stored delivery request','Evidence, clarification, or escalation','missing_details() -> retrieve() -> confirmation check'),
+      coordinator:n('IncidentCoordinator','Select the next speaker','agent',backend+'agents.py',90,'GroupChatBuilder uses this agent as orchestrator_agent. It is instructed to start with order facts, involve all three specialists and allow revisits. Selection is dynamic, not fixed rotation.','Customer request + framework-managed discussion','Specialist selection or group conclusion','GroupChatBuilder(orchestrator_agent=coordinator, participants=specialists)'),
+      orders:n('OrderSpecialist','Order status + quantities','agent',backend+'agents.py',74,'An Agent instructed to verify order facts and challenge unsupported assumptions. It has access to all three evidence tools, not only order_facts.','Shared group context + available tools','Specialist text and optional tool calls','Agent(name="OrderSpecialist", client=client, tools=tools)'),
+      delivery:n('DeliverySpecialist','Tracking is not receipt','agent',backend+'agents.py',80,'Distinguishes tracking scans from proof of receipt, checks missing customer confirmation and must not invent an ETA. The coordinator may select it again.','Shared group context + available tools','Specialist text and optional tool calls','Agent(name="DeliverySpecialist", client=client, tools=tools)'),
+      policy:n('PolicySpecialist','Ground the recommendation','agent',backend+'agents.py',86,'Reviews policy and other specialists\' claims, cites source IDs, and identifies missing evidence, escalation or a proposal requiring approval.','Shared group context + available tools','Cited evidence summary','Agent(name="PolicySpecialist", client=client, tools=tools)'),
+      tools:n('Scoped evidence tools','Shared by all specialists','code',backend+'agents.py',123,'Three async closures expose supplied evidence: order_facts excludes tracking; tracking_facts includes tracking and delivery_checks_confirmed; policy_evidence returns retrieved citations. These tools reuse scoped data rather than execute arbitrary queries.','Captured order, request and policies','Evidence dictionaries / citation list','tools=[order_facts, tracking_facts, policy_evidence]'),
+      writer:n('ResolutionWriter','Discussion to Assessment','agent',backend+'agents.py',43,'After group streaming ends, assess() constructs a separate Agent with response_format=Assessment. Its prompt includes request, order, policies and specialist text accumulated by author. The coordinator final output is not the direct assessment input.','Request + order + policies + discussion','Validated structured Assessment','response = await agent.run(prompt)'),
+      outcome:n('Validate outcome','Application owns the transition','code',backend+'workflows.py',64,'complete_assessment() checks cited IDs and routes propose, clarify, escalate or inform. propose() rechecks eligibility and requires the authorization citation before storing an exact action.','Assessment + retrieved citations','awaiting_approval / awaiting_customer / escalated / completed','await complete_assessment(state, assessment)'),
+      clarify:n('Await customer','No group invocation on precheck path','storage',backend+'services.py',170,'A clarification question is persisted. New information creates a linked investigation with accumulated customer context; it does not resume a suspended agent conversation.','Missing detail or explicit delivery confirmation','awaiting_customer; linked run on reply','continue_run(run_id, information)'),
+      intake:n('intake','Also emits identify activity','code',backend+'workflows.py',109,'The intake executor emits intake and identify events, computes missing_details(), then sends ReturnState. identify is not a separate backend executor.','ReturnState(run_id, request)','State with question populated or empty','await ctx.send_message(state)'),
+      retrieve:n('retrieve','Concurrent evidence lookup','code',backend+'workflows.py',39,'asyncio.gather() concurrently fetches the scoped order and searches policies. Policy search calls embeddings, then fuses vector and lexical results. This is concurrency within one executor, not graph fan-out.','Customer/order IDs + message + desk','State.order + State.policies','await asyncio.gather(get_order(), search_policies(...))'),
+      eligibility:n('eligibility','Deterministic policy gate','code',backend+'workflows.py',136,'eligibility_for(..., "refund") calls domain.evaluate(). Code checks ownership, remaining quantity, delivery status, policy effective date, window and return reason. Ineligible requests bypass the proposal agent.','Stored run + authoritative policies + resolution history','Eligibility(eligible, reason, amount_cents, policy_id)','state.eligibility = await eligibility_for(session, run, "refund")'),
+      proposal:n('proposal','Calls ResolutionWriter via assess()','agent',backend+'workflows.py',158,'If retrieved policies exist, this executor calls assess(), which invokes ResolutionWriter. The model may propose, clarify, escalate or inform. It does not calculate the transaction amount or execute an action.','Request + order + policies + deterministic eligibility','Structured Assessment -> complete_assessment()','response = await assess(client, json.dumps({...}), instructions=...)'),
+      returnClarify:n('clarification','Terminal investigation branch','code',backend+'workflows.py',117,'When intake finds missing details or a malformed return reason, this executor creates a clarification Assessment directly in Python. No proposal-agent call or policy retrieval is needed on this path.','State.question','awaiting_customer','await ctx.yield_output("awaiting_customer")'),
+      escalated:n('escalated','Ineligible request branch','code',backend+'workflows.py',145,'This executor persists the deterministic eligibility reason and yields escalated. It does not ask a model to override policy. Separately, the proposal executor escalates if no retrieved policy evidence exists.','State.eligibility.reason','Persisted escalated terminal status','await finish(state.run_id, "escalated", {...})'),
+      pending:n('Exact proposal saved','Human waiting boundary','storage',backend+'services.py',236,'propose() checks nonempty supported citations, current eligibility and the required authorization policy. It stores action, item, quantity, calculated amount and explanation; run status becomes awaiting_approval.','Grounded proposal Assessment','Proposal(status=pending) + awaiting_approval','await propose(run_id, assessment, citations)'),
+      reviewer:n('Human reviewer','Approve or reject','human',backend+'main.py',219,'The review inbox submits a decision for a specific proposal ID. This is an unauthenticated localhost demo role, not production identity or authorization.','Exact persisted proposal','POST /api/approvals/{proposal_id}/decision','approval_decision() -> decide()'),
+      decision:n('Decision + execution job','Recheck eligibility on approval','storage',backend+'services.py',282,'decide() locks the run/proposal and rejects stale decisions. Approval rechecks eligibility and amount, marks the proposal approved, and queues an execute job. Rejection records a terminal rejected state.','approved or rejected','Queued execution or rejected','session.add(Job(run_id=run.id, kind="execute"))'),
+      gate:n('approval executor','Persisted approval required','code',backend+'workflows.py',211,'A separate MAF workflow begins after the worker claims the execution job. The gate requires an approved or already executed proposal, supporting safe repeated execution. No model client is involved.','Run ID + persisted proposal','Run ID passed to execute','build_action_workflow(): approval -> execute -> verify'),
+      execute:n('execute executor','Record simulated resolution','code',backend+'services.py',322,'execute_resolution() locks rows, checks approval and fresh eligibility, and records a Resolution in a transaction. An already executed proposal is a no-op; stale eligibility escalates without action.','Approved proposal + current business state','Resolution row; completed, cancelled or escalated state','await execute_resolution(run_id)'),
+      verify:n('verify executor','Confirm terminal state','code',backend+'workflows.py',229,'The transaction service verifies the stored resolution and emits execute/verify/confirmation activity. This executor then checks that the run reached completed, cancelled or escalated and yields that status.','Persisted run status','Verified terminal output; no real payment/shipment','await ctx.yield_output(run.status)'),
+      rejected:n('Rejected','No execution job','storage',backend+'services.py',300,'The human rejection is saved, the run becomes rejected, and no execution job is created.','Reviewer rejection','Terminal rejected status','run.status = "rejected"')
+    };
+    const step = (id,text) => ({ id,text });
+    const views = {
+      overview:{
+        kicker:'01 / The shared request lifecycle', title:'The API queues. The worker orchestrates.',
+        description:'Both desks share the same durable entry point. Agent execution happens outside the HTTP request, and activity returns through persisted events.',
+        groups:[{label:'Request and persistence',ids:['browser','api','database']},{connector:'Worker claims a durable job; the browser is not holding execution open.'},{label:'Execution and observation',ids:['worker','dispatch','activity']}],
+        scenarios:[{name:'Start a support investigation',steps:[
+          step('browser','The user chooses a desk, customer, order and item, then submits a support request.'),
+          step('api','FastAPI validates RunInput and delegates to create_run(); it does not call an agent.'),
+          step('database','The request, investigate job and initial queued event are committed together.'),
+          step('worker','A worker claims the job with a renewable lease and starts a bounded background task.'),
+          step('dispatch','investigate() routes returns to WorkflowBuilder or delivery through prechecks to GroupChatBuilder.'),
+          step('activity','As work proceeds, durable events are replayed over SSE. This is a concurrent observation channel, not a final workflow executor.')
+        ]}],
+        noteTitle:'A support run is not an HTTP chat session',
+        note:'<p>PostgreSQL separates the browser from execution. Closing an SSE connection does not cancel the worker.</p><ul><li>React + TypeScript frontend; FastAPI API.</li><li>Microsoft Agent Framework orchestration in a separate worker.</li><li>Azure-hosted model and embedding requests; local hosting is not offline inference.</li><li>OpenTelemetry feeds the standalone Aspire Dashboard; durable audit activity stays in PostgreSQL.</li></ul>',
+        codeTitle:'Follow the dispatch',
+        code:'POST /api/runs\n  -> create_run(request)\n  -> persist Run + Job(kind="investigate")\n\nworker.process(...)\n  -> investigate(run_id)\n     -> returns graph OR delivery group\n\nemit(...) -> Event rows -> SSE -> React'
+      },
+      delivery:{
+        kicker:'02 / Dynamic multi-agent collaboration', title:'A coordinator chooses who speaks next.',
+        description:'The group is invoked with workflow.run(request, stream=True). Specialists can call evidence tools and revisit unresolved issues; a separate writer produces the structured assessment.',
+        groups:[{label:'Application gate',ids:['checks']},{connector:'If evidence is available and required customer checks are confirmed'},{hub:'coordinator'},{connector:'Select speaker / receive contribution / select again (order below is not fixed)'},{label:'MAF group: specialists share context and all three tools',ids:['orders','delivery','policy'],zone:true},{connector:'Optional tool calls during specialist turns; streamed text is captured as it arrives'},{ids:['tools','writer','outcome']},{label:'Precheck alternative',ids:['clarify']}],
+        scenarios:[
+          {name:'Grounded missing-package proposal (example speaker order)',steps:[
+            step('checks','Application code retrieves scoped evidence and checks explicit delivery confirmation before creating the group.'),
+            step('coordinator','The coordinator is instructed to start with order facts. This walkthrough illustrates one possible selection sequence.'),
+            step('orders','OrderSpecialist contributes an order-focused evidence summary.'),
+            step('tools','If the model calls order_facts(), the framework executes the async closure and returns scoped order evidence. Tool calls are model-selected.'),
+            step('coordinator','The coordinator evaluates outstanding evidence and chooses another participant.'),
+            step('delivery','DeliverySpecialist examines tracking and distinguishes a delivery scan from proof of receipt.'),
+            step('coordinator','The coordinator can request policy input; it can also revisit a previous specialist.'),
+            step('policy','PolicySpecialist grounds the recommendation in supplied source IDs. All specialists have access to all tools.'),
+            step('writer','After group execution, ResolutionWriter receives request, order, policies and accumulated specialist text. agent.run(prompt) returns an Assessment.'),
+            step('outcome','For this illustrative propose outcome, application code validates citations and eligibility, then stores an approval request. No action has executed.')
+          ]},
+          {name:'Coordinator revisits delivery evidence (illustrative)',steps:[
+            step('checks','Prechecks pass and evidence is retrieved.'),
+            step('coordinator','The coordinator begins its evidence-driven selection loop.'),
+            step('orders','OrderSpecialist establishes the order facts.'),
+            step('coordinator','Select a specialist for the tracking discrepancy.'),
+            step('delivery','DeliverySpecialist contributes, but uncertainty remains.'),
+            step('coordinator','Choose policy input to clarify which missing evidence matters.'),
+            step('policy','PolicySpecialist flags an unresolved tracking claim.'),
+            step('coordinator','A revisit is allowed; this is not a fixed rotation.'),
+            step('delivery','DeliverySpecialist is selected again. Framework-managed local history supports revisits.'),
+            step('writer','ResolutionWriter synthesizes the discussion; reaching a turn limit does not establish resolution.'),
+            step('outcome','The assessment may propose, clarify, escalate or inform; this walkthrough does not predict model output.')
+          ]},
+          {name:'Household checks unconfirmed: skip all agents',steps:[
+            step('checks','The order is delivered, but delivery_checks_confirmed is false. Application code refuses to let model text stand in for explicit customer confirmation.'),
+            step('clarify','A deterministic clarification asks about household members and safe delivery locations. No group or ResolutionWriter is invoked.')
+          ]}
+        ],
+        noteTitle:'Where framework control begins and ends',
+        note:'<p>The framework handles internal speaker selection, specialist execution, tool dispatch and local conversation history. Application code listens for events and persists safe summaries.</p><ul><li><code>GroupChatRequestSentEvent</code> becomes <code>speaker_selected</code>.</li><li>Intermediate <code>AgentResponseUpdate</code> text becomes <code>agent_delta</code>.</li><li>Specialist output is concatenated per author for the writer.</li><li>Group participation rules are prompt instructions; the turn cap is configuration.</li></ul>',
+        codeTitle:'The two invocation boundaries',
+        code:'group = build_delivery_group(client, tools)\n\nasync for event in group.run(\n    json.dumps(request), stream=True\n):\n    # Persist selections and specialist text\n\nassessment = await assess(client, prompt)\n# Inside assess():\nresponse = await agent.run(prompt)'
+      },
+      returns:{
+        kicker:'03 / An explicit directed workflow', title:'The graph routes state. One step calls an agent.',
+        description:'ReturnState travels between Python executors. Conditional edges enforce the business path; only proposal generation invokes ResolutionWriter. Retrieval separately uses embeddings.',
+        groups:[{label:'Main investigation path (follow left to right, then down)',ids:['intake','retrieve','eligibility']},{connector:'eligible = true -> proposal; eligible = false -> escalated'},{ids:['proposal','outcome','pending']},{label:'Conditional branches',ids:['returnClarify','escalated']}],
+        scenarios:[
+          {name:'Eligible defective item: propose, do not execute',steps:[
+            step('intake','Order, item and a reason such as "defective: will not switch on" are present. intake emits identify and sends state.'),
+            step('retrieve','Order lookup and policy search run concurrently inside this executor, filling order and policies.'),
+            step('eligibility','Application code checks remaining quantity, delivery, window and reason. Eligibility is accepted for this example.'),
+            step('proposal','The proposal executor calls assess(). ResolutionWriter receives evidence and eligibility with an Assessment response schema.'),
+            step('outcome','The example model outcome is propose. complete_assessment() validates cited policy IDs and delegates to propose().'),
+            step('pending','The amount is computed by application code; an exact proposal is stored with status awaiting_approval. The investigation execution ends.')
+          ]},
+          {name:'Missing details: clarification without agent calls',steps:[
+            step('intake','missing_details() identifies an absent order/item or a malformed return reason.'),
+            step('returnClarify','The intake -> clarification condition matches. Python constructs the clarification Assessment and persists awaiting_customer. No retrieval or proposal agent runs.')
+          ]},
+          {name:'Outside policy window: deterministic escalation',steps:[
+            step('intake','Required customer inputs are present, so the graph takes the retrieval branch.'),
+            step('retrieve','Fetch the order and cited policies. Policy retrieval includes an embedding request, but no proposal-agent invocation.'),
+            step('eligibility','domain.evaluate() rejects an expired return window. The model is not asked to override that decision.'),
+            step('escalated','The conditional edge routes to escalated, stores the eligibility reason and terminates. ResolutionWriter is never invoked.')
+          ]},
+          {name:'No retrieved policies: proposal executor skips agent',steps:[
+            step('intake','Required inputs are complete.'),
+            step('retrieve','Retrieval returns no policy citations in this illustrative path.'),
+            step('eligibility','The deterministic policy store can still accept eligibility; this check is separate from semantic retrieval results.'),
+            step('proposal','The proposal executor sees an empty state.policies, persists escalated, and returns before calling assess().')
+          ]}
+        ],
+        noteTitle:'Executor does not mean agent',
+        note:'<p><code>@executor</code> wraps Python business steps. The explicit graph has six investigation executors: intake, clarification, retrieve, eligibility, escalated and proposal.</p><ul><li><code>ctx.send_message(state)</code> passes ReturnState onward.</li><li>Edge predicates inspect question and eligibility.</li><li><code>ctx.yield_output(...)</code> emits terminal workflow output.</li><li>The UI identify node is an event, not an extra executor. Approval/execution lives outside this investigation graph.</li></ul>',
+        codeTitle:'The real graph wiring (condensed)',
+        code:'intake -> clarification  if question\nintake -> retrieve       if not question\nretrieve -> eligibility\neligibility -> proposal  if eligible\neligibility -> escalated if not eligible\n\n# Inside proposal, if policy evidence exists:\nresponse = await assess(client, evidence_prompt)\nawait complete_assessment(state, response)'
+      },
+      approval:{
+        kicker:'04 / The durable human boundary', title:'Approval starts another workflow, not another agent.',
+        description:'Both desks converge here. Human waiting is stored in PostgreSQL; approval queues a separate execution job. The continuation has no model calls.',
+        groups:[{label:'Persisted waiting and decision',ids:['pending','reviewer','decision']},{connector:'On approval: durable Job(kind="execute") -> worker -> new MAF workflow'},{label:'ApprovedResolutionContinuation',ids:['gate','execute','verify']},{label:'On rejection',ids:['rejected']}],
+        scenarios:[
+          {name:'Approve and record a simulated action',steps:[
+            step('pending','A pending proposal captures the exact action, item, quantity, amount and citations. The investigation job has ended.'),
+            step('reviewer','A human approves that proposal ID in the review inbox. No model chooses whether to approve.'),
+            step('decision','decide() checks freshness and revalidates eligibility/amount before persisting approval and queuing an execute job.'),
+            step('gate','The worker runs execute_approved(). The approval executor verifies persisted human approval.'),
+            step('execute','execute_resolution() rechecks business state and records a simulated Resolution within a database transaction.'),
+            step('verify','The continuation verifies a permitted terminal status. Completion does not mean a real payment or shipment was created.')
+          ]},
+          {name:'Reviewer rejects: no execution',steps:[
+            step('pending','The run waits for a decision on its stored proposal.'),
+            step('reviewer','The reviewer rejects the exact proposal.'),
+            step('decision','decide() records the rejection instead of queuing an execute job.'),
+            step('rejected','The run is terminal rejected. The action graph is not invoked.')
+          ]},
+          {name:'Eligibility changes after approval: no action',steps:[
+            step('pending','The proposal is initially valid and awaits approval.'),
+            step('reviewer','The reviewer approves the proposed action.'),
+            step('decision','The approval-time checks pass and an execution job is queued.'),
+            step('gate','The continuation verifies persisted approval.'),
+            step('execute','Current eligibility or amount no longer matches the proposal. The service cancels the proposal and escalates the run without recording a resolution.'),
+            step('verify','The verify executor accepts the escalated terminal state. Approval does not bypass the execution-time business checks.')
+          ]}
+        ],
+        noteTitle:'A real boundary, not a prompt-based permission',
+        note:'<p>Agents can recommend actions but cannot approve or execute them. Authorization depends on database state and deterministic checks.</p><ul><li>Eligibility is checked at proposal, approval and execution.</li><li>Order-row locking and resolution uniqueness protect quantities and prevent duplicate actions.</li><li>Already executed proposals safely short-circuit.</li><li>All actions are local simulations. Reviewer identity is not authenticated in this localhost demo.</li></ul>',
+        codeTitle:'A second MAF execution',
+        code:'decide(proposal_id, "approved")\n  -> persist approved proposal\n  -> queue Job(kind="execute")\n\nexecute_approved(run_id)\n  -> build_action_workflow().run(run_id)\n     approval -> execute -> verify\n\n# No Agent(), assess(), or model_client() here.'
+      }
+    };
+    const $ = id => document.getElementById(id);
+    const graphLayouts = {
+      returns:{
+        height:910,
+        note:'Solid arrows = MAF executor edges. Dashed arrows = application service calls/outcomes. Purple marks the proposal executor that calls ResolutionWriter (only when policy evidence exists). The no-policies branch sets escalated status inside proposal; it does not invoke the escalated executor. The writer can also clarify, escalate or inform; only its proposal outcome is expanded below. Scroll horizontally on small screens.',
+        positions:{intake:[350,30],retrieve:[350,185],eligibility:[350,340],proposal:[350,500],outcome:[350,655],pending:[350,805],returnClarify:[20,185],escalated:[680,340]},
+        edges:[
+          ['intake','retrieve','M470 125 V185','details complete',482,157],
+          ['intake','returnClarify','M350 77 H140 V185','missing details',155,66],
+          ['retrieve','eligibility','M470 280 V340','evidence retrieved',482,312],
+          ['eligibility','proposal','M470 435 V500','eligible',482,470],
+          ['eligibility','escalated','M590 387 H680','ineligible',603,373],
+          ['proposal','escalated','M590 547 H800 V435','no policies: skip agent',650,576,true],
+          ['proposal','outcome','M470 595 V655','Assessment',482,628,true],
+          ['outcome','pending','M470 750 V805','outcome = propose',482,782,true]
+        ]
+      },
+      approval:{
+        height:910,
+        note:'Dashed arrows cross application services and the durable human boundary. Solid arrows connect the three executors of the separate ApprovedResolutionContinuation workflow. No agents run here. Scroll horizontally on small screens.',
+        positions:{pending:[350,30],reviewer:[350,185],decision:[350,340],gate:[350,500],execute:[350,655],verify:[350,805],rejected:[680,340]},
+        edges:[
+          ['pending','reviewer','M470 125 V185','human waiting',482,157,true],
+          ['reviewer','decision','M470 280 V340','persist decision',482,312,true],
+          ['decision','rejected','M590 387 H680','rejected',603,373,true],
+          ['decision','gate','M470 435 V500','approved: execute job',482,470,true],
+          ['gate','execute','M470 595 V655','persisted approval',482,628],
+          ['execute','verify','M470 750 V805','terminal state',482,782]
+        ]
+      }
+    };
+    function renderConnectedGraph(layout) {
+      const svgNS = 'http://www.w3.org/2000/svg';
+      const svgElement = (name,attributes = {}) => {
+        const element = document.createElementNS(svgNS,name);
+        Object.entries(attributes).forEach(([key,value]) => element.setAttribute(key,String(value)));
+        return element;
+      };
+      const note = document.createElement('p'); note.className = 'graph-note'; note.textContent = layout.note;
+      const scroll = document.createElement('div'); scroll.className = 'graph-scroll'; scroll.tabIndex = 0;
+      scroll.setAttribute('role','region'); scroll.setAttribute('aria-label','Scrollable connected workflow graph');
+      const svg = svgElement('svg',{viewBox:'0 0 940 '+layout.height,class:'connected-graph',role:'group','aria-label':activeView === 'returns' ? 'Returns investigation directed graph' : 'Approval and execution directed graph'});
+      const defs = svgElement('defs');
+      for (const [id,color] of [['arrow-default','#70869f'],['arrow-active','#6ce4bd']]) {
+        const marker = svgElement('marker',{id,viewBox:'0 0 10 10',refX:9,refY:5,markerWidth:7,markerHeight:7,orient:'auto-start-reverse'});
+        marker.append(svgElement('path',{d:'M0 0 L10 5 L0 10 Z',fill:color})); defs.append(marker);
+      }
+      svg.append(defs);
+      layout.edges.forEach(([from,to,path,label,x,y,service]) => {
+        const group = svgElement('g',{class:'graph-edge'+(service ? ' service' : ''),'data-from':from,'data-to':to});
+        group.append(svgElement('path',{d:path,'marker-end':'url(#arrow-default)'}));
+        const text = svgElement('text',{x,y}); text.textContent = label;
+        group.append(text); svg.append(group);
+      });
+      Object.entries(layout.positions).forEach(([id,[x,y]],index) => {
+        const foreign = svgElement('foreignObject',{x,y,width:240,height:95});
+        foreign.append(makeNode(id,index+1)); svg.append(foreign);
+      });
+      scroll.append(svg); $('map').append(note,scroll);
+    }
+    let activeView = 'overview', scenarioIndex = 0, position = 0, selected = 'browser', timer = null;
+    const currentView = () => views[activeView];
+    const currentScenario = () => currentView().scenarios[scenarioIndex];
+    function stop() {
+      if (timer !== null) clearInterval(timer);
+      timer = null;
+      $('play').textContent = 'Play path';
+      $('play').setAttribute('aria-pressed','false');
+    }
+    function inspect(id) {
+      selected = id;
+      const item = nodes[id];
+      $('details').replaceChildren();
+      const type = document.createElement('span');
+      type.className = 'detail-type';
+      type.textContent = {code:'Application code',agent:'Agent / agent orchestration',storage:'Durable application state',human:'Human interaction'}[item.kind];
+      const title = document.createElement('h3'); title.textContent = item.title;
+      const description = document.createElement('p'); description.textContent = item.description;
+      const list = document.createElement('dl');
+      for (const [label,value] of [['Input',item.input],['Output',item.output],['Source location',item.file+' : '+item.line]]) {
+        const dt = document.createElement('dt'); dt.textContent = label;
+        const dd = document.createElement('dd'); dd.textContent = value;
+        list.append(dt,dd);
+      }
+      const pre = document.createElement('pre'), code = document.createElement('code');
+      code.textContent = item.call; pre.append(code);
+      const link = document.createElement('a');
+      link.href = root+item.file; link.textContent = 'Open source file';
+      const source = document.createElement('p'); source.style.marginTop = '18px'; source.append(link);
+      $('details').append(type,title,description,list,pre,source);
+      updateHighlights();
+    }
+    function makeNode(id,index) {
+      const item = nodes[id], button = document.createElement('button');
+      button.type = 'button'; button.className = 'node'; button.dataset.id = id; button.dataset.kind = item.kind;
+      const number = document.createElement('span'); number.className = 'number';
+      const ordinal = document.createElement('span'); ordinal.textContent = String(index).padStart(2,'0');
+      const type = document.createElement('span'); type.textContent = {code:'CODE',agent:'AGENT',storage:'STATE',human:'HUMAN'}[item.kind];
+      number.append(ordinal,type);
+      const title = document.createElement('strong'); title.textContent = item.title;
+      const subtitle = document.createElement('small'); subtitle.textContent = item.subtitle;
+      button.append(number,title,subtitle);
+      button.addEventListener('click',() => inspect(id));
+      return button;
+    }
+    function renderView() {
+      const view = currentView();
+      $('view-kicker').textContent = view.kicker; $('view-title').textContent = view.title;
+      $('view-description').textContent = view.description;
+      $('note-title').textContent = view.noteTitle; $('note-body').innerHTML = view.note;
+      $('code-title').textContent = view.codeTitle; $('code').textContent = view.code;
+      $('flow-panel').setAttribute('aria-labelledby','tab-'+activeView);
+      document.querySelectorAll('.tab').forEach(button => {
+        const active = button.dataset.view === activeView;
+        button.setAttribute('aria-selected',String(active)); button.tabIndex = active ? 0 : -1;
+      });
+      $('map').replaceChildren();
+      let index = 0;
+      if (graphLayouts[activeView]) renderConnectedGraph(graphLayouts[activeView]);
+      for (const group of graphLayouts[activeView] ? [] : view.groups) {
+        if (group.connector) {
+          const connector = document.createElement('div'); connector.className = 'connector';
+          connector.textContent = '\u2193 '+group.connector; $('map').append(connector); continue;
+        }
+        if (group.hub) {
+          const hub = document.createElement('div'); hub.className = 'group-hub';
+          hub.append(makeNode(group.hub,++index)); $('map').append(hub); continue;
+        }
+        const section = document.createElement('div');
+        if (group.zone) section.className = 'group-zone';
+        if (group.label) {
+          const label = document.createElement('p'); label.className = 'lane-label';
+          label.style.marginTop = index > 0 ? '18px' : '0'; label.textContent = group.label; section.append(label);
+        }
+        const grid = document.createElement('div'); grid.className = 'node-grid';
+        group.ids.forEach(id => grid.append(makeNode(id,++index)));
+        section.append(grid); $('map').append(section);
+      }
+      $('scenario').replaceChildren();
+      view.scenarios.forEach((scenario,i) => {
+        const option = document.createElement('option'); option.value = String(i); option.textContent = scenario.name; $('scenario').append(option);
+      });
+      $('scenario').value = String(scenarioIndex);
+      renderStep();
+    }
+    function updateHighlights() {
+      const steps = currentScenario().steps, route = new Set(steps.map(s => s.id));
+      const visited = new Set(steps.slice(0,position).map(s => s.id)), current = steps[position].id;
+      document.querySelectorAll('.node').forEach(button => {
+        const id = button.dataset.id;
+        button.classList.toggle('selected',id === selected);
+        button.classList.toggle('on-route',route.has(id));
+        button.classList.toggle('visited',visited.has(id));
+        button.classList.toggle('current',id === current);
+        button.setAttribute('aria-pressed',String(id === selected));
+        if (id === current) button.setAttribute('aria-current','step'); else button.removeAttribute('aria-current');
+      });
+      document.querySelectorAll('.graph-edge').forEach(edge => {
+        const active = steps.some((entry,index) => index > 0 && index <= position && steps[index-1].id === edge.dataset.from && entry.id === edge.dataset.to);
+        edge.classList.toggle('active',active);
+        edge.querySelector('path').setAttribute('marker-end',active ? 'url(#arrow-active)' : 'url(#arrow-default)');
+      });
+    }
+    function renderStep() {
+      const steps = currentScenario().steps, item = steps[position];
+      $('step-title').textContent = nodes[item.id].title;
+      $('step-text').textContent = item.text;
+      $('step-count').textContent = (position+1)+' / '+steps.length;
+      $('progress-fill').style.width = ((position+1)/steps.length*100)+'%';
+      const progress = document.querySelector('[role="progressbar"]');
+      progress.setAttribute('aria-valuemax',String(steps.length)); progress.setAttribute('aria-valuenow',String(position+1));
+      $('previous').disabled = position === 0; $('next').disabled = position === steps.length-1;
+      $('path').replaceChildren();
+      steps.forEach((entry,i) => {
+        if (i) $('path').append(document.createTextNode(' \u2192 '));
+        const label = document.createElement(i === position ? 'b' : 'span');
+        label.textContent = nodes[entry.id].title; $('path').append(label);
+      });
+      inspect(item.id);
+    }
+    function move(delta) {
+      position = Math.max(0,Math.min(currentScenario().steps.length-1,position+delta));
+      renderStep();
+    }
+    function switchView(name) {
+      stop(); activeView = name; scenarioIndex = 0; position = 0; renderView();
+    }
+    const tabs = [...document.querySelectorAll('.tab')];
+    tabs.forEach((button,index) => {
+      button.addEventListener('click',() => switchView(button.dataset.view));
+      button.addEventListener('keydown',event => {
+        let next;
+        if (event.key === 'ArrowRight') next = (index+1)%tabs.length;
+        if (event.key === 'ArrowLeft') next = (index+tabs.length-1)%tabs.length;
+        if (event.key === 'Home') next = 0;
+        if (event.key === 'End') next = tabs.length-1;
+        if (next !== undefined) { event.preventDefault(); tabs[next].focus(); switchView(tabs[next].dataset.view); }
+      });
+    });
+    $('scenario').addEventListener('change',event => { stop(); scenarioIndex = Number(event.target.value); position = 0; renderStep(); });
+    $('previous').addEventListener('click',() => { stop(); move(-1); });
+    $('next').addEventListener('click',() => { stop(); move(1); });
+    $('reset').addEventListener('click',() => { stop(); position = 0; renderStep(); });
+    $('play').addEventListener('click',() => {
+      if (timer !== null) { stop(); return; }
+      if (position === currentScenario().steps.length-1) { position = 0; renderStep(); }
+      $('play').textContent = 'Pause'; $('play').setAttribute('aria-pressed','true');
+      timer = setInterval(() => { move(1); if (position === currentScenario().steps.length-1) stop(); },2400);
+    });
+    document.addEventListener('visibilitychange',() => { if (document.hidden) stop(); });
+    renderView();
+  </script>
+</body>
+</html>

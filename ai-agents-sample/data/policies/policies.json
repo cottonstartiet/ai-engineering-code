@@ -1,0 +1,26 @@
+[
+  {
+    "id": "returns-30-day",
+    "title": "Returns policy / defective products",
+    "desk": "returns",
+    "version": "1",
+    "text": "Defective products may be returned for refund or replacement within 30 calendar days of delivery, inclusive. The customer must supply the order, item, quantity, and a description of the defect. A customer defect description is sufficient for this synthetic demo; do not request photographs or uploads. Human review is required for every refund or replacement. The refund is the item unit price multiplied by eligible quantity in USD. Shipping refunds are not covered. Products outside the 30 day window must be escalated; do not promise a refund. Previously refunded or replaced quantities cannot be resolved again.",
+    "rules": {"window_days": 30, "reasons": ["defective", "damaged"], "approval_required": true}
+  },
+  {
+    "id": "delivery-missing",
+    "title": "Delivery policy / delivered but missing",
+    "desk": "delivery",
+    "version": "1",
+    "text": "For a shipment marked delivered but reported missing, confirm the customer's order and ask whether household members and safe delivery locations have been checked. A delivery scan is not proof of receipt or customer fault. If these checks are confirmed and the incident is reported within 7 calendar days of the delivery scan, propose a replacement or refund for affected item quantities, subject to human approval. Unconfirmed checks require clarification. Conflicting evidence or an older incident requires escalation. Never claim a courier investigation has actually been opened.",
+    "rules": {"window_days": 7, "approval_required": true}
+  },
+  {
+    "id": "delivery-delay",
+    "title": "Delivery policy / delayed shipments",
+    "desk": "delivery",
+    "version": "1",
+    "text": "For delayed in-transit shipments, report the latest tracking scan and the original delivery promise. Do not invent a new delivery estimate or guarantee arrival. Escalate a time-sensitive delay for manual review. This policy does not authorize an automatic refund or replacement while the shipment is in transit.",
+    "rules": {"approval_required": true}
+  }
+]

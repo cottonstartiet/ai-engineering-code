@@ -1,0 +1,367 @@
+# Retail Support Agents
+
+A locally hosted Microsoft Agent Framework (MAF) sample with **two distinct support desks available together**:
+
+| Desk | Pattern | Example |
+| --- | --- | --- |
+| Delivery Incident Desk | Coordinator-led group chat | "Tracking says delivered, but my package is missing." |
+| Returns & Refunds Desk | Explicit directed graph | "My headphones are defective. I want a refund." |
+
+Python/FastAPI, React/TypeScript, PostgreSQL + pgvector, Azure OpenAI Responses API,
+OpenTelemetry, and the standalone Aspire Dashboard. No Cosmos DB, Copilot SDK, Redis,
+or real payment/shipping services.
+
+**This is an unauthenticated, localhost-only synthetic demo.** Customer selection and
+the reviewer inbox simulate roles; they are not authentication or production access
+controls. A recorded refund/replacement never moves money or creates a shipment.
+Model and embedding requests use Azure, so local hosting does **not** mean offline
+inference.
+
+Agents use Responses API `store=false` and MAF-managed local conversation history.
+This keeps orchestration context under application control and supports selecting
+the same specialist for consecutive turns without sending an empty continuation.
+It does not change Azure's applicable service data-handling terms.
+
+## Prerequisites
+
+- Docker with Compose and Linux containers.
+- An Azure OpenAI resource endpoint (or its full `/openai/v1` URL), API key, and a
+  Responses-capable model deployment with structured-output support.
+- A **separate text-embedding deployment**, such as a deployment of
+  `text-embedding-3-small`. Set its actual **deployment name**, not an assumed model
+  name. The chat deployment cannot generate embeddings.
+- Native development/testing additionally uses Python 3.12+, uv, and Node.js 22+.
+
+The supplied endpoint shape and `gpt-5.4-mini` deployment are supported. No real API
+key is included. Rotate keys pasted into chat and configure a replacement locally.
+
+## Start locally
+
+Run these PowerShell commands from this folder:
+
+```powershell
+Copy-Item .env.example .env
+notepad .env
+docker compose up --build -d
+docker compose ps
+```
+
+Set at least:
+
+```dotenv
+AZURE_OPENAI_ENDPOINT=https://YOUR-RESOURCE.services.ai.azure.com/openai/v1
+AZURE_OPENAI_DEPLOYMENT=gpt-5.4-mini
+AZURE_OPENAI_API_KEY=YOUR-ROTATED-KEY
+AZURE_OPENAI_EMBEDDING_DEPLOYMENT=YOUR-EMBEDDING-DEPLOYMENT
+EMBEDDING_DIMENSIONS=1536
+```
+
+Use your deployment's supported embedding dimensions. The sample requests explicit
+dimensions and validates the returned vectors, making text-embedding-3 deployments
+the straightforward choice. Do not configure an embedding model that rejects the
+`dimensions` parameter without updating the adapter.
+
+Compose starts PostgreSQL and the dashboard, applies Alembic migrations, seeds
+synthetic records, and indexes policy embeddings before making the API/worker/UI
+available. Initial indexing calls Azure and incurs usage. Rerunning setup skips
+unchanged policy chunks. Missing credentials/deployments and indexing failures are
+visible failures, never a fake-model fallback.
+
+| Endpoint | Purpose |
+| --- | --- |
+| http://localhost:5173 | Both support desks, reviewer inbox, run history |
+| http://localhost:8000/docs | Interactive FastAPI documentation |
+| http://localhost:8000/api/health | Database and policy-index readiness |
+| http://localhost:18888 | Aspire traces, logs, and metrics |
+| localhost:55432 | PostgreSQL on the host |
+
+All published ports bind to loopback. The dashboard allows anonymous access only
+for this local setup. Do not publish these ports on a public interface.
+
+```powershell
+docker compose logs --tail 80 setup api worker
+docker compose stop
+# Remove this sample's containers/network, keeping its database volume:
+docker compose down
+```
+
+Do not delete the database volume unless you intentionally want to erase the demo's
+orders, approvals, and audit history. Seed dates are anchored on first initialization,
+not silently reset on every startup; old orders can become ineligible over time.
+
+## Try the two experiences
+
+### Delivery Incident Desk
+
+1. Select Alex and the **Delivered but missing** scenario.
+2. Verify the order/item and the explicit household/safe-location confirmation.
+3. Start the investigation. The coordinator selects order, delivery, and policy
+   specialists according to outstanding evidence. Specialists can revisit a topic;
+   this is not a fixed sequence masquerading as group chat.
+4. Review the participant messages, tool activity, evidence, and recommendation.
+5. If a replacement/refund is proposed, open the reviewer inbox and approve or reject
+   the exact action.
+
+Try **Missing package, checks not confirmed** for clarification and **Time-sensitive
+delayed order** for escalation. A delivery scan is never treated as proof of receipt
+or customer fault. There is no invented ETA or claim that a real courier was contacted.
+
+The customer-confirmation checkbox is an explicit input. Text generated by an agent
+cannot confirm it on the customer's behalf.
+
+### Returns & Refunds Desk
+
+1. Select **Eligible defective headphones**.
+2. Provide an item, quantity, and reason in the form `defective: description` or
+   `damaged: description`.
+3. Follow the graph through identification, concurrent order/policy retrieval,
+   deterministic eligibility, and a cited resolution proposal.
+4. Approve/reject in the reviewer inbox. On approval, a separate graph continuation
+   gates execution on the persisted approval and verifies the local transaction.
+
+Try **Return one of two damaged items**, **Return outside policy window**, and
+**Previously refunded item**. The first is a partial return; the others escalate
+without asking the model to override policy.
+
+Every refund and replacement requires approval, including actions proposed by
+group chat. Monetary calculations, windows, remaining quantities, and approval
+enforcement are application logic, not prompt-based permissions.
+
+## Architecture
+
+```text
+React UI -- HTTP / durable SSE --> FastAPI
+                                    |
+                     PostgreSQL runs, jobs, events, approvals
+                                    |
+                             Background worker
+                       /                           \
+           Delivery MAF group chat          Returns MAF directed graph
+                       \                           /
+                         Scoped application tools
+                         /                      \
+               PostgreSQL/pgvector       Azure OpenAI v1
+                                          Responses + embeddings
+
+API + worker + MAF + tools + SQL --> OpenTelemetry --> Aspire Dashboard
+```
+
+### Directed graph and human waiting
+
+```text
+Intake -> Identify -> Retrieve -> Eligibility -> Proposal -> Persist approval request
+              |                       |
+              +-> Clarification       +-> Escalation
+
+Human approval -> Durable execution job -> Approval gate -> Execute -> Verify
+Human rejection -> Rejected terminal state
+```
+
+The visible UI graph includes the complete business lifecycle. It intentionally
+spans **two MAF executions**, with durable application state across the human pause;
+it does not pretend an in-memory workflow can resume after a process restart.
+Order/policy retrieval runs concurrently inside its executor.
+
+### Persistence, isolation, and recovery
+
+- PostgreSQL stores immutable proposal payloads, decisions, simulated resolutions,
+  run history, customer updates, jobs, and ordered application events.
+- Customer context is bound in application tools. Arbitrary SQL/shell/filesystem
+  tools are not exposed.
+- Approvals are tied to the exact proposal, not a mutable natural-language plan.
+  Eligibility is rechecked before approval and execution.
+- Order-row locking plus proposal uniqueness prevents duplicate actions and
+  overlapping refunds/replacements of the same quantities.
+- Two worker slots process the desks concurrently; PostgreSQL job claims prevent
+  the same queued job being claimed twice. Additional worker replicas are supported.
+- Closing a browser/SSE connection does not cancel a run. Reconnects replay durable
+  event IDs; the browser deduplicates events.
+- Pending human approvals/information survive restarts. Approved but interrupted
+  actions are safely requeued after the worker lease expires.
+- Interrupted active investigations are marked **interrupted**, not silently replayed.
+  Retry starts a linked attempt with stored customer inputs.
+- Clarification starts a linked investigation with updated case context. This is
+  explicit continuation, not arbitrary restoration of a paused agent conversation.
+- Active investigation timeout excludes human waiting. Defaults: 12 participant
+  turns, 2 transient provider retries, 120 seconds active work, and a 180-second
+  renewable job lease. There is no automatic retry of policy denials.
+- Cancellation cannot roll back an already committed action; a completed action is
+  shown as completed rather than falsely reported as cancelled.
+
+### Policy retrieval
+
+Policies live in `data\policies\policies.json`. One curated section is one chunk;
+each has a stable source ID, version, effective date, desk applicability, rules,
+content hash, embedding deployment identity, and vector.
+
+Retrieval filters by desk/effective date, combines cosine similarity and PostgreSQL
+full-text matches using reciprocal-rank fusion, and returns source citations.
+Unchanged chunks are not embedded again. Model citations are checked against
+retrieved evidence; critical policy rules are independently checked in code.
+
+After editing policies:
+
+```powershell
+docker compose build setup
+docker compose run --rm setup
+```
+
+The sample endpoint was verified with `text-embedding-3-small`; other resources must
+use their own deployed embedding identifier.
+
+After changing the embedding deployment or dimensions, explicitly reindex and
+restart application services with matching settings:
+
+```powershell
+docker compose stop api worker web
+docker compose run --rm setup python -m support_demo.seed --reindex
+docker compose up -d api worker web
+```
+
+There is no silent fallback to keyword-only retrieval if Azure embeddings fail.
+The tiny curated corpus uses exact vector scans; large-scale ANN indexing and
+retrieval evaluation are deliberately outside the sample.
+
+## Observability walkthrough
+
+1. Start a case and open its activity/history view. Note the run's **trace ID**.
+2. Open Aspire, select `support-api` or `support-worker`, and locate that trace.
+3. Inspect HTTP request, queued-work propagation, workflow/executor, agent/model,
+   custom tool, retrieval, approval/action, and database spans.
+4. Review correlated structured logs and metrics for duration, token usage when
+   reported, tool latency, retries, participant turns, retrieval matches, and outcomes.
+5. Reject an approval or cancel a run, then compare the persisted application
+   timeline with telemetry.
+
+If the Aspire CLI is installed, the local telemetry API is also enabled:
+
+```powershell
+aspire otel traces --dashboard-url http://localhost:18888 --limit 10
+aspire otel spans --dashboard-url http://localhost:18888 --trace-id YOUR_TRACE_ID --limit 100
+```
+
+Request trace context travels with queued jobs. Approval execution is a later job
+associated with the same case/run. Request/run IDs are in traces/logs, not metric
+labels. Application audit events are a separate persisted record, not scraped from
+the dashboard.
+
+Prompt/response/tool payload capture is **off by default**. Errors retain safe
+categories; do not log API keys or raw customer content. Setting
+`CAPTURE_SYNTHETIC_PAYLOADS=true` is only for synthetic local diagnostics and may
+expose entire prompts/results in telemetry.
+
+Per-run usage summaries distinguish unavailable token reporting from zero.
+Optionally configure `INPUT_PRICE_PER_MILLION` and `OUTPUT_PRICE_PER_MILLION` for
+approximate USD estimates. These are not bills and do not account for every cache,
+discount, or provider-specific pricing rule.
+
+**Aspire stores live telemetry in memory.** Restarting the dashboard loses that
+telemetry; PostgreSQL run/audit history survives. Durable trace/log/metric storage,
+browser OpenTelemetry instrumentation, and production monitoring backends are not
+included.
+
+## Development and verification
+
+Backend dependencies and framework adapters are locked in `backend\uv.lock`;
+frontend dependencies are locked in `frontend\package-lock.json`. The Python
+lockfile uses the reachable Microsoft package-feed proxy; the Dockerfile accepts a
+`PYTHON_INDEX_URL` build argument if your environment needs a different index.
+
+Start only local infrastructure without copying credentials:
+
+```powershell
+docker compose --env-file .env.example up -d db dashboard
+docker compose --env-file .env.example exec -T db psql -U support -d support -c "CREATE DATABASE support_test;"
+```
+
+`CREATE DATABASE` is needed once. Tests refuse a database name not ending in `_test`.
+They rebuild tables **only in that dedicated test database**. Override `DATABASE_URL`
+explicitly if needed; never point tests at a database containing useful data.
+
+```powershell
+Push-Location backend
+uv sync --frozen --default-index https://packagefeedproxy.microsoft.io/pypi/simple/
+uv run ruff check src migrations tests
+uv run ruff format --check src migrations tests
+uv run mypy src
+uv run pytest -q
+Pop-Location
+
+Push-Location frontend
+npm ci
+npm run lint
+npm test
+npm run build
+npx playwright install chromium
+npm run test:e2e
+Pop-Location
+```
+
+Backend integration tests use real PostgreSQL/pgvector with **test-only scripted
+model/embedding responses**. They exercise actual MAF group-chat and graph execution,
+eligibility, citations, scoping, concurrent approvals, action idempotency, job leases,
+restart recovery, API errors, accounting, and safe trace propagation. Browser tests
+mock API/SSE responses and do not require Azure.
+
+Live checks are explicit and use environment variables, never checked-in keys.
+From `backend`, use a host database URL if also running database-dependent checks:
+
+```powershell
+$env:AZURE_OPENAI_ENDPOINT = "https://YOUR-RESOURCE.services.ai.azure.com/openai/v1"
+$env:AZURE_OPENAI_DEPLOYMENT = "gpt-5.4-mini"
+$env:AZURE_OPENAI_API_KEY = "YOUR-ROTATED-KEY"
+$env:AZURE_OPENAI_EMBEDDING_DEPLOYMENT = "YOUR-EMBEDDING-DEPLOYMENT"
+$env:EMBEDDING_DIMENSIONS = "1536"
+$env:RUN_LIVE_AZURE_CHAT = "1"
+$env:RUN_LIVE_AZURE_EMBEDDINGS = "1"
+# Optional multi-call specialist/tool smoke test:
+$env:RUN_LIVE_AZURE_GROUP = "1"
+uv run pytest tests\test_live.py -q
+Remove-Item Env:AZURE_OPENAI_API_KEY
+```
+
+For native API/worker development, export the settings above plus
+`DATABASE_URL=postgresql+psycopg://support:support-local-demo@127.0.0.1:55432/support`
+and `DATA_DIRECTORY=..\data`, then run Alembic, seed, API, and worker from `backend`:
+
+```powershell
+uv run alembic upgrade head
+uv run python -m support_demo.seed
+uv run uvicorn support_demo.main:app --host 127.0.0.1 --port 8000
+# In a second terminal with the same environment:
+uv run python -m support_demo.worker
+# In frontend, in another terminal:
+npm run dev -- --host 127.0.0.1
+```
+
+The seed/worker/migration entrypoints select a psycopg-compatible event loop on
+Windows. Docker is the recommended complete-app startup path.
+
+## Troubleshooting and limits
+
+- **Setup exits / UI unavailable:** inspect `docker compose logs setup`. Confirm both
+  deployment names, API-key permissions, embedding dimensions, and endpoint shape.
+- **Embedding configuration changed:** use explicit `--reindex`; do not ignore the
+  mismatch. Interrupted reindexing must be completed before using the app.
+- **HTTP 401/403/404 from Azure:** check resource, deployment, key, and supported API
+  surface. Business refusals and authentication failures are not retried as transient.
+- **API readiness 503:** schema/index setup is incomplete or configuration mismatches.
+- **Investigation failed/timeout:** inspect safe error type and trace ID, then retry
+  explicitly. A finite turn/deadline budget is intentional.
+- **Pending action after restart:** allow the old job lease to expire before recovery;
+  reviewer decisions and action uniqueness remain in PostgreSQL.
+- **Stale approval:** review the current case state; duplicate/conflicting decisions
+  return HTTP 409 instead of executing twice.
+- **No telemetry:** confirm `TELEMETRY_ENABLED=true`, exporter endpoint uses
+  `http://dashboard:18889` inside Compose (`http://localhost:4317` from the host), and
+  the dashboard is running.
+- **No production auth:** reviewer endpoints are intentionally accessible locally.
+  Add real identity, role enforcement, tenant isolation, rate limits, secret
+  management, and durable telemetry before any non-demo deployment.
+
+Customer messages and accumulated clarification context are limited to 4,000
+characters; overlong continuations fail explicitly instead of dropping earlier facts.
+Run history currently lists the latest 100 runs.
+
+API shapes are documented in `api-contract.md`; interactive request schemas are
+available at `/docs`.

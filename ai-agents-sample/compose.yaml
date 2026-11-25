@@ -1,0 +1,88 @@
+name: retail-support-agents
+x-app-environment: &app-environment
+  DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://support:support-local-demo@db:5432/support}
+  AZURE_OPENAI_ENDPOINT: ${AZURE_OPENAI_ENDPOINT:-}
+  AZURE_OPENAI_DEPLOYMENT: ${AZURE_OPENAI_DEPLOYMENT:-gpt-5.4-mini}
+  AZURE_OPENAI_API_KEY: ${AZURE_OPENAI_API_KEY:-}
+  AZURE_OPENAI_EMBEDDING_DEPLOYMENT: ${AZURE_OPENAI_EMBEDDING_DEPLOYMENT:-}
+  EMBEDDING_DIMENSIONS: ${EMBEDDING_DIMENSIONS:-1536}
+  MAX_GROUP_TURNS: ${MAX_GROUP_TURNS:-12}
+  TRANSIENT_RETRIES: ${TRANSIENT_RETRIES:-2}
+  INVESTIGATION_TIMEOUT_SECONDS: ${INVESTIGATION_TIMEOUT_SECONDS:-120}
+  JOB_LEASE_SECONDS: ${JOB_LEASE_SECONDS:-180}
+  WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-2}
+  TELEMETRY_ENABLED: ${TELEMETRY_ENABLED:-true}
+  OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://dashboard:18889}
+  CAPTURE_SYNTHETIC_PAYLOADS: ${CAPTURE_SYNTHETIC_PAYLOADS:-false}
+  INPUT_PRICE_PER_MILLION: ${INPUT_PRICE_PER_MILLION:-}
+  OUTPUT_PRICE_PER_MILLION: ${OUTPUT_PRICE_PER_MILLION:-}
+  DATA_DIRECTORY: /app/data
+services:
+  db:
+    image: pgvector/pgvector:0.8.2-pg17
+    environment:
+      POSTGRES_DB: support
+      POSTGRES_USER: support
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-support-local-demo}
+    ports:
+      - "127.0.0.1:55432:5432"
+    volumes:
+      - support-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U support -d support"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  dashboard:
+    image: mcr.microsoft.com/dotnet/aspire-dashboard:13.6.5
+    environment:
+      ASPIRE_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS: "true"
+      Dashboard__Api__Disabled: "false"
+    ports:
+      - "127.0.0.1:18888:18888"
+      - "127.0.0.1:4317:18889"
+  setup:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment: *app-environment
+    command: ["sh", "-c", "alembic upgrade head && python -m support_demo.seed"]
+    depends_on:
+      db:
+        condition: service_healthy
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment: *app-environment
+    ports:
+      - "127.0.0.1:${API_PORT:-8000}:8000"
+    depends_on:
+      setup:
+        condition: service_completed_successfully
+      dashboard:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 5s
+      timeout: 4s
+      retries: 12
+  worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment: *app-environment
+    command: ["python", "-m", "support_demo.worker"]
+    depends_on:
+      api:
+        condition: service_healthy
+  web:
+    build:
+      context: frontend
+    ports:
+      - "127.0.0.1:${WEB_PORT:-5173}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+volumes:
+  support-data:
